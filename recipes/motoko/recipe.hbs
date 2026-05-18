@@ -2,6 +2,8 @@
 {{! `main: string` Motoko file which contains the main actor }}
 {{! `args: string` Additional arguments to pass to the moc compiler }}
 {{! `candid: string` Optional, the path to the Candid interface file }}
+{{! `idl: string` Optional, path (relative to the canister directory) where moc's
+    generated Candid interface (.did) file will be written }}
 {{! `shrink: boolean` Optimizes the wasm with ic-wasm }}
 {{! `compress: boolean` determines whether the wasm should be gzipped }}
 {{! `metadata: [name: string, value: string]`: An array of name/value pairs that get injected into the wasm metadata section }}
@@ -19,7 +21,10 @@ build:
 
     - type: script
       commands:
-        - sh -c '$(mops toolchain bin moc) "{{ main }}" {{#if args}}{{ args }} {{/if}}{{#if candid}}--omit-metadata{{else}}--public-metadata{{/if}} candid:service $(mops sources) -o "$ICP_WASM_OUTPUT_PATH"'
+        - sh -c '$(mops toolchain bin moc) "{{ main }}" {{#if args}}{{ args }} {{/if}}{{#if candid}}--omit-metadata{{else}}--public-metadata{{/if}} candid:service {{#if idl}}--idl{{/if}} $(mops sources) -o "$ICP_WASM_OUTPUT_PATH"'
+        {{#if idl}}
+        - sh -c 'mkdir -p "$(dirname "{{ idl }}")" && cp "${ICP_WASM_OUTPUT_PATH%.wasm}.did" "{{ idl }}"'
+        {{/if}}
 
     - type: script
       commands:
