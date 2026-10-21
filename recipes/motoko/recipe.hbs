@@ -4,6 +4,9 @@
 {{! `candid: string` Optional, the path to the Candid interface file }}
 {{! `idl: string` Optional, path (relative to the canister directory) where moc's
     generated Candid interface (.did) file will be written }}
+{{! `optimize: boolean` Runs `wasm-opt -O3` after codegen for binaryen's
+    heavy instruction-count optimizer. Independent of `shrink`
+    (`ic-wasm shrink` is primarily size reduction, not throughput). }}
 {{! `shrink: boolean` Optimizes the wasm with ic-wasm }}
 {{! `compress: boolean` determines whether the wasm should be gzipped }}
 {{! `metadata: [name: string, value: string]`: An array of name/value pairs that get injected into the wasm metadata section }}
@@ -15,6 +18,9 @@ build:
       commands:
         - sh -c 'command -v mops >/dev/null 2>&1 || { echo >&2 "'mops' not found on path. To install Mops, see https://mops.one/docs/install.\n"; exit 1; }'
         - command -v ic-wasm >/dev/null 2>&1 || { echo >&2 "ic-wasm not found. To install ic-wasm, see https://github.com/dfinity/ic-wasm \n"; exit 1; }
+        {{#if optimize }}
+        - command -v wasm-opt >/dev/null 2>&1 || { echo >&2 "wasm-opt not found. Install binaryen (brew install binaryen) or disable 'optimize' in icp.yaml. \n"; exit 1; }
+        {{/if}}
         {{#if compress }}
         - command -v gzip >/dev/null 2>&1 || { echo >&2 "gzip not found. Please install gzip to compress build output. \n"; exit 1; }
         {{/if}}
@@ -41,6 +47,12 @@ build:
         - ic-wasm "$ICP_WASM_OUTPUT_PATH" -o "${ICP_WASM_OUTPUT_PATH}" metadata "{{ name }}" -d "{{ value }}" --keep-name-section
         {{/each}}
         {{/if}}
+
+    {{#if optimize}}
+    - type: script
+      commands:
+        - wasm-opt -O3 "$ICP_WASM_OUTPUT_PATH" -o "$ICP_WASM_OUTPUT_PATH"
+    {{/if}}
 
     {{#if shrink}}
     - type: script
